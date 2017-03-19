@@ -1,21 +1,20 @@
-/**
- * A simple Linux Kernel module, which sends a heartbeat like signal to a GPIO
- * PIN using a Kernel thread when loaded.
+/*
+ * gpio-heartbeat - GPIO heartbeat sends a heartbeat like signal to GPIO pin
  *
- * The module has a parameter gpioPIN to change the GPIO PIN from the default.
-*/
+ * Copyright (C) 2017 Simon Eisenmann <simon@longsleep.org>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ */
 
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
-#include <linux/gpio.h>       // GPIO
-#include <linux/kthread.h>    // threads
-#include <linux/delay.h>      // msleep()
-
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Simon Eisenmann");
-MODULE_DESCRIPTION("A simple Linux GPIO heartbeat driver");
-MODULE_VERSION("0.1");
+#include <linux/gpio.h>            // GPIO
+#include <linux/kthread.h>         // threads
+#include <linux/delay.h>           // msleep()
+#include <linux/platform_device.h> // platform driver
 
 static unsigned int gpioPIN = 77;
 module_param(gpioPIN, uint, S_IRUGO);
@@ -23,6 +22,14 @@ MODULE_PARM_DESC(gpioPIN, " GPIO PIN number (default=77)");
 
 static struct task_struct *task;
 static bool gpioState = false;
+
+#if defined(CONFIG_OF)
+static struct of_device_id platform_device_match_table[] = {
+	{ .compatible = "gpio-heartbeat" },
+	{}
+};
+MODULE_DEVICE_TABLE(of, platform_device_match_table);
+#endif
 
 static int heartbeat(void *arg)
 {
@@ -76,5 +83,30 @@ static void __exit gpioHeartbeat_exit(void)
 	printk(KERN_INFO "GPIO Heartbeat: exit\n");
 }
 
-module_init(gpioHeartbeat_init);
-module_exit(gpioHeartbeat_exit);
+static int platform_device_probe(struct platform_device *pdev)
+{
+	return gpioHeartbeat_init();
+}
+
+static int platform_device_remove(struct platform_device *pdev)
+{
+	gpioHeartbeat_exit();
+	return 0;
+}
+
+static struct platform_driver platform_device_platform_driver = {
+	.probe = platform_device_probe,
+	.remove = platform_device_remove,
+	.driver = {
+		.name = "gpio-heartbeat",
+		.owner = THIS_MODULE,
+		.of_match_table = of_match_ptr(platform_device_match_table),
+	},
+};
+
+module_platform_driver(platform_device_platform_driver);
+
+MODULE_DESCRIPTION("A simple Linux GPIO heartbeat driver");
+MODULE_AUTHOR("Simon Eisenmann");
+MODULE_LICENSE("GPL");
+MODULE_VERSION("0.2");
