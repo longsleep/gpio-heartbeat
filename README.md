@@ -7,6 +7,13 @@ GPIO pin.
 Whenever the module is loaded, the GPIO pin periodically toggles on/off
 simulating a heartbeat like pluse signal.
 
+## Educational example - use leds-gpio module in production
+
+This module is a simple educational example of a minimal Kernel module with GPIO
+platform device and and Kernel thread. The Linux Kernel has the same
+functionality available in the [gpio-led](http://lxr.free-electrons.com/source/Documentation/devicetree/bindings/leds/leds-gpio.txt) module
+with the heartbeat trigger.
+
 ## Compile
 
 This module is developed as an out of tree module and can be compiled with an
